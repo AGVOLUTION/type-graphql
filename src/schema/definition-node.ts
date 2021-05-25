@@ -9,6 +9,7 @@ import {
   parseValue,
   DocumentNode,
   parse,
+  ObjectTypeExtensionNode,
 } from "graphql";
 
 import { InvalidDirectiveError } from "../errors";
@@ -17,19 +18,20 @@ import { DirectiveMetadata } from "../metadata/definitions";
 export function getObjectTypeDefinitionNode(
   name: string,
   directiveMetadata?: DirectiveMetadata[],
-): ObjectTypeDefinitionNode | undefined {
-  if (!directiveMetadata || !directiveMetadata.length) {
+  isObjectTypeExtension?: boolean,
+): ObjectTypeDefinitionNode | ObjectTypeExtensionNode | undefined {
+  if (!directiveMetadata || (!directiveMetadata.length && !isObjectTypeExtension)) {
     return;
   }
 
   return {
-    kind: "ObjectTypeDefinition",
+    kind: isObjectTypeExtension ? "ObjectTypeExtension" : "ObjectTypeDefinition",
     name: {
       kind: "Name",
       // FIXME: use proper AST representation
       value: name,
     },
-    directives: directiveMetadata.map(getDirectiveNode),
+    directives: (directiveMetadata || []).map(getDirectiveNode),
   };
 }
 

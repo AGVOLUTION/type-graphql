@@ -17,6 +17,7 @@ import {
   GraphQLTypeResolver,
   GraphQLDirective,
   GraphQLFieldResolver,
+  ObjectTypeDefinitionNode,
 } from "graphql";
 import { withFilter, ResolverFn } from "graphql-subscriptions";
 
@@ -139,7 +140,7 @@ export abstract class SchemaGenerator {
       ...prebuiltSchema.toConfig(),
       // run after first build to make `usedInterfaceTypes` working
       types: this.buildOtherTypes(orphanedTypes),
-    })
+    });
 
     BuildContext.reset();
     this.usedInterfaceTypes = new Set<Function>();
@@ -260,7 +261,14 @@ export abstract class SchemaGenerator {
         type: new GraphQLObjectType({
           name: objectType.name,
           description: objectType.description,
-          astNode: getObjectTypeDefinitionNode(objectType.name, objectType.directives),
+          astNode: getObjectTypeDefinitionNode(
+            objectType.name,
+            objectType.directives,
+            objectType.isObjectTypeExtension,
+          ) as ObjectTypeDefinitionNode,
+          extensionASTNodes: objectType.isObjectTypeExtension
+            ? [{ kind: "ObjectTypeExtension", name: { kind: "Name", value: objectType.name } }]
+            : undefined,
           extensions: objectType.extensions,
           interfaces: () => {
             let interfaces = interfaceClasses.map<GraphQLInterfaceType>(interfaceClass => {

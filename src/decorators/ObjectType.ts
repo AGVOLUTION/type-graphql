@@ -7,6 +7,8 @@ export type ObjectTypeOptions = DescriptionOptions &
   ImplementsClassOptions & {
     /** Set to `true` to disable auth and all middlewares stack for all this Object Type fields resolvers */
     simpleResolvers?: boolean;
+    /** Set to `true` to emit GraphQL SDL with `extend type ...` instead of `type ...`. Can be useful for Apollo Federation. */
+    isObjectTypeExtension?: boolean;
   };
 
 export function ObjectType(): ClassDecorator;
@@ -25,6 +27,7 @@ export function ObjectType(
       target,
       description: options.description,
       interfaceClasses,
+      isObjectTypeExtension: options.isObjectTypeExtension || false,
       isAbstract: options.isAbstract,
       simpleResolvers: options.simpleResolvers,
     });
