@@ -1,6 +1,6 @@
 {
-  "name": "type-graphql",
-  "version": "0.0.0-unreleased",
+  "name": "@agvolution/type-graphql",
+  "version": "0.0.1",
   "author": {
     "name": "Michał Lytek",
     "url": "https://github.com/MichalLytek"
@@ -109,10 +109,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MichalLytek/type-graphql.git"
+    "url": "https://github.com/AGVOLUTION/type-graphql.git"
   },
   "bugs": {
-    "url": "https://github.com/MichalLytek/type-graphql/issues"
+    "url": "https://github.com/AGVOLUTION/type-graphql/issues"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
   },
   "keywords": [
     "typescript",
@@ -127,5 +131,5 @@
   "engines": {
     "node": ">= 10.3"
   },
-  "private": true
+  "private": false
 }
