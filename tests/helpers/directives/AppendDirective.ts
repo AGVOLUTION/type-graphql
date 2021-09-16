@@ -19,6 +19,7 @@ export class AppendDirective extends SchemaDirectiveVisitor {
       defaultValue: "",
       extensions: {},
       astNode: undefined,
+      deprecationReason: undefined,
     });
 
     field.resolve = async function (source, { append, ...otherArgs }, context, info) {

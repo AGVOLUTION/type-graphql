@@ -46,13 +46,14 @@ import {
   InterfaceResolveTypeError,
   CannotDetermineGraphQLTypeError,
 } from "../errors";
-import { ResolverFilterData, ResolverTopicData, TypeResolver, ClassType } from "../interfaces";
+import { ResolverFilterData, ResolverTopicData, TypeResolver } from "../interfaces";
 import { getFieldMetadataFromInputType, getFieldMetadataFromObjectType } from "./utils";
 import { ensureInstalledCorrectGraphQLPackage } from "../utils/graphql-version";
 import {
   getFieldDefinitionNode,
   getInputObjectTypeDefinitionNode,
   getInputValueDefinitionNode,
+  getInterfaceTypeDefinitionNode,
   getObjectTypeDefinitionNode,
 } from "./definition-node";
 import { ObjectClassMetadata } from "../metadata/definitions/object-class-metdata";
@@ -97,7 +98,6 @@ export interface SchemaGeneratorOptions extends BuildContextOptions {
    * Disable checking on build the correctness of a schema
    */
   skipCheck?: boolean;
-
   /**
    * Array of graphql directives
    */
@@ -162,6 +162,11 @@ export abstract class SchemaGenerator {
     fieldName: string,
     typeName: string,
   ): unknown | undefined {
+    const { disableInferringDefaultValues } = BuildContext;
+    if (disableInferringDefaultValues) {
+      return typeOptions.defaultValue;
+    }
+
     const defaultValueFromInitializer = typeInstance[fieldName];
     if (
       typeOptions.defaultValue !== undefined &&
@@ -217,8 +222,8 @@ export abstract class SchemaGenerator {
                 // use closure captured `unionObjectTypesInfo`
                 const objectTypeInfo = unionObjectTypesInfo.find(
                   type => type.target === instanceTarget,
-                )!;
-                return objectTypeInfo.type;
+                );
+                return objectTypeInfo?.type.name;
               },
         }),
       };
@@ -350,6 +355,7 @@ export abstract class SchemaGenerator {
                   extensions: {
                     complexity: field.complexity,
                     ...field.extensions,
+                    ...fieldResolverMetadata?.extensions,
                   },
                 };
                 return fieldsMap;
@@ -400,6 +406,7 @@ export abstract class SchemaGenerator {
           type: new GraphQLInterfaceType({
             name: interfaceType.name,
             description: interfaceType.description,
+            astNode: getInterfaceTypeDefinitionNode(interfaceType.name, interfaceType.directives),
             interfaces: () => {
               let interfaces = (interfaceType.interfaceClasses || []).map<GraphQLInterfaceType>(
                 interfaceClass =>
@@ -439,19 +446,21 @@ export abstract class SchemaGenerator {
                       (resolver.resolverClassMetadata === undefined ||
                         resolver.resolverClassMetadata.isAbstract === false),
                   );
+                  const type = this.getGraphQLOutputType(
+                    field.target,
+                    field.name,
+                    field.getType(),
+                    field.typeOptions,
+                  );
                   fieldsMap[field.schemaName] = {
-                    type: this.getGraphQLOutputType(
-                      field.target,
-                      field.name,
-                      field.getType(),
-                      field.typeOptions,
-                    ),
+                    type,
                     args: this.generateHandlerArgs(field.target, field.name, field.params!),
                     resolve: fieldResolverMetadata
                       ? createAdvancedFieldResolver(fieldResolverMetadata)
                       : createBasicFieldResolver(field),
                     description: field.description,
                     deprecationReason: field.deprecationReason,
+                    astNode: getFieldDefinitionNode(field.name, type, field.directives),
                     extensions: {
                       complexity: field.complexity,
                       ...field.extensions,
@@ -482,8 +491,8 @@ export abstract class SchemaGenerator {
                   }
                   const objectTypeInfo = implementingObjectTypesInfo.find(
                     type => type.target === typeTarget,
-                  )!;
-                  return objectTypeInfo.type;
+                  );
+                  return objectTypeInfo?.type.name;
                 },
           }),
         };
@@ -509,25 +518,24 @@ export abstract class SchemaGenerator {
           fields: () => {
             let fields = inputType.fields!.reduce<GraphQLInputFieldConfigMap>(
               (fieldsMap, field) => {
-                field.typeOptions.defaultValue = this.getDefaultValue(
+                const defaultValue = this.getDefaultValue(
                   inputInstance,
                   field.typeOptions,
                   field.name,
                   inputType.name,
                 );
 
-                const type = this.getGraphQLInputType(
-                  field.target,
-                  field.name,
-                  field.getType(),
-                  field.typeOptions,
-                );
-                fieldsMap[field.schemaName] = {
+                const type = this.getGraphQLInputType(field.target, field.name, field.getType(), {
+                  ...field.typeOptions,
+                  defaultValue,
+                });
+                fieldsMap[field.name] = {
                   description: field.description,
                   type,
-                  defaultValue: field.typeOptions.defaultValue,
+                  defaultValue,
                   astNode: getInputValueDefinitionNode(field.name, type, field.directives),
                   extensions: field.extensions,
+                  deprecationReason: field.deprecationReason,
                 };
                 return fieldsMap;
               },
@@ -656,7 +664,7 @@ export abstract class SchemaGenerator {
   private static generateSubscriptionsFields<T = any, U = any>(
     subscriptionsHandlers: SubscriptionResolverMetadata[],
   ): GraphQLFieldConfigMap<T, U> {
-    const { pubSub } = BuildContext;
+    const { pubSub, container } = BuildContext;
     const basicFields = this.generateHandlerFields(subscriptionsHandlers);
     return subscriptionsHandlers.reduce<GraphQLFieldConfigMap<T, U>>((fields, handler) => {
       // omit emitting abstract resolver fields
@@ -694,6 +702,7 @@ export abstract class SchemaGenerator {
 
       fields[handler.schemaName].subscribe = wrapResolverWithAuthChecker(
         subscribeFn,
+        container,
         handler.roles,
       );
       return fields;
@@ -718,6 +727,7 @@ export abstract class SchemaGenerator {
             param.name,
           ),
           defaultValue: param.typeOptions.defaultValue,
+          deprecationReason: param.deprecationReason,
         };
       } else if (param.kind === "args") {
         const argumentType = getMetadataStorage().argumentTypes.find(
@@ -751,7 +761,7 @@ export abstract class SchemaGenerator {
   ) {
     const argumentInstance = new (argumentType.target as any)();
     argumentType.fields!.forEach(field => {
-      field.typeOptions.defaultValue = this.getDefaultValue(
+      const defaultValue = this.getDefaultValue(
         argumentInstance,
         field.typeOptions,
         field.name,
@@ -759,13 +769,12 @@ export abstract class SchemaGenerator {
       );
       args[field.schemaName] = {
         description: field.description,
-        type: this.getGraphQLInputType(
-          field.target,
-          field.name,
-          field.getType(),
-          field.typeOptions,
-        ),
-        defaultValue: field.typeOptions.defaultValue,
+        type: this.getGraphQLInputType(field.target, field.name, field.getType(), {
+          ...field.typeOptions,
+          defaultValue,
+        }),
+        defaultValue,
+        deprecationReason: field.deprecationReason,
       };
     });
   }
@@ -856,7 +865,8 @@ export abstract class SchemaGenerator {
       if (!resolvedType || typeof resolvedType === "string") {
         return resolvedType;
       }
-      return possibleObjectTypesInfo.find(objectType => objectType.target === resolvedType)?.type;
+      return possibleObjectTypesInfo.find(objectType => objectType.target === resolvedType)?.type
+        .name;
     };
   }
 
