@@ -170,7 +170,7 @@ const ResolversSection = props => (
         {
           title: "Create resolvers",
           content:
-            "Implement queries and mutation just like a normal class methods! Dependency injection support and decorators abstraction provides great separation of business logic from the underlying transport layer.<br><br>That gives you really easy testability, so you can just provide mocks of dependencies to prevent side effects and unit test your resolvers like a simple services which methods only take some parameters and return results.",
+            "Implement queries and mutations as normal class methods! Dependency injection support and decorators abstraction provides great separation of business logic from the underlying transport layer.<br><br>That gives you really easy testability, so you can just provide mocks of dependencies to prevent side effects and unit test your resolvers like a simple services which methods only take some parameters and return results.",
         },
       ]}
     />
@@ -270,12 +270,12 @@ const CollectiveSection = props => (
         <h3 className="title">Silver Sponsors 🥈</h3>
         <div className="tiles">
           <a href="https://gorrion.io/">
-            <img src={imgUrl("gorrion.png")} style={{ width: 250 }} />
+            <img src={imgUrl("gorrion.png")} style={{ width: 250, backgroundColor: "#f9f9f9" }} />
             <span>Gorrion Software House</span>
           </a>
-          <a href="https://www.mryum.com/">
-            <img src={imgUrl("mr-yum.png")} style={{ width: 100 }} />
-            <span>Mr Yum</span>
+          <a href="https://www.chums.co/">
+            <img src={imgUrl("chums.svg")} style={{ width: 125 }} />
+            <span>Chums</span>
           </a>
         </div>
         <h3 className="title">Bronze Sponsors 🥉</h3>
@@ -293,12 +293,13 @@ const CollectiveSection = props => (
             <span>SwissMentor</span>
           </a>
         </div>
-        <h3 className="title">Members 💪 and Backers ☕</h3>
+        <h3 className="title">Members 💪</h3>
         <a href="https://opencollective.com/typegraphql#contributors">
-          <img src="https://opencollective.com/typegraphql/sponsors.svg?width=1024&button=false" />
+          <img src="https://opencollective.com/typegraphql/tiers/members.svg?avatarHeight=48&width=1024&button=false" />
         </a>
+        <h3 className="title">Backers ☕</h3>
         <a href="https://opencollective.com/typegraphql#contributors">
-          <img src="https://opencollective.com/typegraphql/backers.svg?width=1024&button=false" />
+          <img src="https://opencollective.com/typegraphql/tiers/backers.svg?avatarHeight=48&width=1024&button=false" />
         </a>
       </div>
     </div>

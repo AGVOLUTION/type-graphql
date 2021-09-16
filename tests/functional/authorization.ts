@@ -13,6 +13,8 @@ import {
   FieldResolver,
   UnauthorizedError,
   ForbiddenError,
+  AuthCheckerInterface,
+  ResolverData,
 } from "../../src";
 
 describe("Authorization", () => {
@@ -183,8 +185,7 @@ describe("Authorization", () => {
     });
 
     // TODO: check for wrong `@Authorized` usage
-    // it("should throw error when `@Authorized` is used on args, input or interface class", async () => {
-    // }
+    it.todo("should throw error when `@Authorized` is used on args, input or interface class");
   });
 
   describe("Functional", () => {
@@ -494,6 +495,78 @@ describe("Authorization", () => {
       expect(authCheckerResolverData.context.field).toEqual("contextField");
       expect(authCheckerResolverData.args).toEqual({});
       expect(authCheckerResolverData.info).toBeDefined();
+    });
+  });
+
+  describe("with class-based auth checker", () => {
+    it("should correctly call auth checker class instance 'check' method", async () => {
+      let authCheckerResolverData: any;
+      let authCheckerRoles: any;
+      class TestAuthChecker implements AuthCheckerInterface {
+        check(resolverData: ResolverData, roles: string[]) {
+          authCheckerResolverData = resolverData;
+          authCheckerRoles = roles;
+          return false;
+        }
+      }
+      const localSchema = await buildSchema({
+        resolvers: [sampleResolver],
+        authChecker: TestAuthChecker,
+      });
+
+      const query = /* graphql */ `
+        query {
+          adminOrRegularQuery
+        }
+      `;
+
+      const result = await graphql(
+        localSchema,
+        query,
+        { field: "rootField" },
+        { field: "contextField" },
+      );
+
+      expect(result.data).toBeNull();
+      expect(result.errors).toMatchInlineSnapshot(`
+        Array [
+          [GraphQLError: Access denied! You don't have permission for this action!],
+        ]
+      `);
+      expect(authCheckerResolverData.root).toEqual({ field: "rootField" });
+      expect(authCheckerResolverData.context).toEqual({ field: "contextField" });
+      expect(authCheckerResolverData.args).toEqual({});
+      expect(authCheckerResolverData.info).toBeDefined();
+      expect(authCheckerRoles).toEqual(["ADMIN", "REGULAR"]);
+    });
+  });
+
+  describe("with constant readonly array or roles", () => {
+    let testResolver: Function;
+
+    beforeAll(() => {
+      getMetadataStorage().clear();
+
+      const CONSTANT_ROLES = ["a", "b", "c"] as const;
+
+      @Resolver()
+      class TestResolver {
+        @Query()
+        @Authorized(CONSTANT_ROLES)
+        authedQuery(@Ctx() ctx: any): boolean {
+          return ctx.user !== undefined;
+        }
+      }
+
+      testResolver = TestResolver;
+    });
+
+    it("should not throw an error", async () => {
+      await buildSchema({
+        resolvers: [testResolver],
+        // dummy auth checker
+        authChecker: () => false,
+      });
     });
   });
 });

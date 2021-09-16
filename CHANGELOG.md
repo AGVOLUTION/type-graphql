@@ -1,7 +1,23 @@
 # Changelog and release notes
 
-<!-- ## Unreleased -->
+## Unreleased
 <!-- here goes all the unreleased changes descriptions -->
+### Features
+- **Breaking Change**: `AuthChecker` type is now "function or class" - update to `AuthCheckerFn` if the function form is needed in the code
+- support class-based auth checker, which allows for dependency injection
+- allow defining directives for interface types and theirs fields, with inheritance for object types fields (#744)
+- allow deprecating input fields and args (#794)
+- support disabling inferring default values (#793)
+- support readonly arrays for roles of `@Authorized` decorator (#935)
+- add sync version of `buildTypeDefsAndResolvers` function (#803)
+### Fixes
+- **Breaking Change**: properly emit types nullability when `defaultValue` is provided and remove `ConflictingDefaultWithNullableError` error (#751)
+- allow defining extension on field resolver level for fields also defined as a property of the class (#776)
+- fix throwing error when schema with dynamic default value was built again (#787)
+- fix converting inputs with fields of nested array type (#801)
+- disable broken exposing input types fields under a changed name via `@Field({ name: "..." })`
+### Others
+- **Breaking Change**: update `graphql-js` peer dependency to `^15.5.0`
 
 ## v1.1.1
 ### Fixes
