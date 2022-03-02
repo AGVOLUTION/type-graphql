@@ -860,8 +860,8 @@ export abstract class SchemaGenerator {
     resolveType: TypeResolver<TSource, TContext>,
     possibleObjectTypesInfo: ObjectTypeInfo[],
   ): GraphQLTypeResolver<TSource, TContext> {
-    return async (...args) => {
-      const resolvedType = await resolveType(...args);
+    return (...args) => {
+      const resolvedType = resolveType(...args);
       if (!resolvedType || typeof resolvedType === "string") {
         return resolvedType;
       }

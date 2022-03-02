@@ -544,9 +544,9 @@ class SchemaGenerator {
         return types_1.wrapWithTypeOptions(target, propertyName, gqlType, typeOptions, nullableByDefault);
     }
     static getResolveTypeFunction(resolveType, possibleObjectTypesInfo) {
-        return async (...args) => {
+        return (...args) => {
             var _a;
-            const resolvedType = await resolveType(...args);
+            const resolvedType = resolveType(...args);
             if (!resolvedType || typeof resolvedType === "string") {
                 return resolvedType;
             }

@@ -43,8 +43,8 @@ function createResolversMap(schema) {
 exports.createResolversMap = createResolversMap;
 function generateTypeResolver(abstractType, schema) {
     if (abstractType.resolveType) {
-        return async (...args) => {
-            const detectedType = await abstractType.resolveType(...args);
+        return (...args) => {
+            const detectedType = abstractType.resolveType(...args);
             if (detectedType instanceof graphql_1.GraphQLObjectType) {
                 return detectedType.name;
             }
@@ -52,9 +52,9 @@ function generateTypeResolver(abstractType, schema) {
         };
     }
     const possibleObjectTypes = schema.getPossibleTypes(abstractType);
-    return async (source, context, info) => {
+    return (source, context, info) => {
         for (const objectType of possibleObjectTypes) {
-            if (objectType.isTypeOf && (await objectType.isTypeOf(source, context, info))) {
+            if (objectType.isTypeOf && (objectType.isTypeOf(source, context, info))) {
                 return objectType.name;
             }
         }
